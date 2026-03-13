@@ -18,7 +18,7 @@ interface JobMatchToolProps {
   accentColor: string;
 }
 
-type Mode = "keyword" | "resume";
+type Mode = "keyword" | "resume" | "link";
 
 export default function JobMatchTool({
   onKeywordMatch,
@@ -38,6 +38,11 @@ export default function JobMatchTool({
   // Resume upload
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+
+  // Link parse
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkParsing, setLinkParsing] = useState(false);
+  const [linkError, setLinkError] = useState("");
 
   function handleKeywordSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -74,35 +79,70 @@ export default function JobMatchTool({
     }
   }
 
+  async function handleLinkParse(e: React.FormEvent) {
+    e.preventDefault();
+    if (!linkUrl.trim()) return;
+
+    setLinkParsing(true);
+    setLinkError("");
+
+    try {
+      const res = await fetch("/api/resume/parse-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: linkUrl.trim() }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "解析失敗");
+      }
+
+      const parsed: ResumeParseResult = data.parsed || data;
+      onResumeMatch(parsed);
+    } catch (err) {
+      setLinkError(
+        err instanceof Error ? err.message : "連結解析失敗，請確認連結有效"
+      );
+    } finally {
+      setLinkParsing(false);
+    }
+  }
+
+  const tabClass = (active: boolean) =>
+    `px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+      active ? "text-white" : "bg-white text-gray-600 hover:bg-gray-100"
+    }`;
+
   return (
     <div className="bg-gray-50 rounded-2xl p-6 md:p-8">
       {/* Mode tabs */}
       <div className="flex gap-2 mb-6">
         <button
           onClick={() => setMode("keyword")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-            mode === "keyword"
-              ? "text-white"
-              : "bg-white text-gray-600 hover:bg-gray-100"
-          }`}
+          className={tabClass(mode === "keyword")}
           style={mode === "keyword" ? { backgroundColor: accentColor } : {}}
         >
           關鍵字搜尋
         </button>
         <button
           onClick={() => setMode("resume")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-            mode === "resume"
-              ? "text-white"
-              : "bg-white text-gray-600 hover:bg-gray-100"
-          }`}
+          className={tabClass(mode === "resume")}
           style={mode === "resume" ? { backgroundColor: accentColor } : {}}
         >
           上傳履歷匹配
         </button>
+        <button
+          onClick={() => setMode("link")}
+          className={tabClass(mode === "link")}
+          style={mode === "link" ? { backgroundColor: accentColor } : {}}
+        >
+          貼上連結
+        </button>
       </div>
 
-      {mode === "keyword" ? (
+      {mode === "keyword" && (
         <form onSubmit={handleKeywordSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -179,7 +219,9 @@ export default function JobMatchTool({
             {loading ? "媒合中..." : "開始媒合"}
           </Button>
         </form>
-      ) : (
+      )}
+
+      {mode === "resume" && (
         <div>
           <label
             className="flex flex-col items-center justify-center w-full h-48 bg-white border-2 border-dashed border-gray-200 rounded-xl hover:border-gray-300 transition-colors cursor-pointer"
@@ -235,6 +277,49 @@ export default function JobMatchTool({
             <p className="text-sm text-red-500 mt-3">{uploadError}</p>
           )}
         </div>
+      )}
+
+      {mode === "link" && (
+        <form onSubmit={handleLinkParse} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              履歷連結
+            </label>
+            <input
+              type="url"
+              value={linkUrl}
+              onChange={(e) => setLinkUrl(e.target.value)}
+              placeholder="貼上履歷 PDF 連結（Google Drive、Dropbox 或直接 PDF 網址）"
+              required
+              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="bg-white rounded-lg p-4 border border-gray-100">
+            <p className="text-xs font-medium text-gray-500 mb-2">
+              支援的連結格式：
+            </p>
+            <ul className="text-xs text-gray-400 space-y-1">
+              <li>&#8226; 直接 PDF 連結（https://...resume.pdf）</li>
+              <li>&#8226; Google Drive 分享連結</li>
+              <li>&#8226; Dropbox 分享連結</li>
+            </ul>
+          </div>
+
+          <Button
+            type="submit"
+            disabled={linkParsing || loading}
+            size="lg"
+            className="w-full !text-white"
+            style={{ backgroundColor: accentColor } as React.CSSProperties}
+          >
+            {linkParsing ? "解析中..." : loading ? "媒合中..." : "解析並媒合"}
+          </Button>
+
+          {linkError && (
+            <p className="text-sm text-red-500">{linkError}</p>
+          )}
+        </form>
       )}
     </div>
   );

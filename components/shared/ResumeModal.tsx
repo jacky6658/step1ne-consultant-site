@@ -12,7 +12,7 @@ interface ResumeModalProps {
   consultant: Consultant;
 }
 
-type Mode = "form" | "upload";
+type Mode = "form" | "upload" | "link";
 
 export default function ResumeModal({
   isOpen,
@@ -43,6 +43,10 @@ export default function ResumeModal({
   const [uploading, setUploading] = useState(false);
   const [parsed, setParsed] = useState(false);
 
+  // Link state
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkParsing, setLinkParsing] = useState(false);
+
   const accent = consultant.siteConfig.accentColor || "#3b82f6";
 
   function resetForm() {
@@ -61,12 +65,27 @@ export default function ResumeModal({
     setSubmitted(false);
     setError("");
     setParsed(false);
+    setLinkUrl("");
     setMode("form");
   }
 
   function handleClose() {
     resetForm();
     onClose();
+  }
+
+  function applyParsedData(data: ResumeParseResult) {
+    if (data.name) setName(data.name);
+    if (data.email) setEmail(data.email);
+    if (data.phone) setPhone(data.phone);
+    if (data.position) setPosition(data.position);
+    if (data.years) setYearsExp(String(data.years));
+    if (data.skills) setSkills(data.skills);
+    if (data.education) setEducation(data.education);
+    if (data.location) setLocation(data.location);
+    if (data.linkedin_url) setLinkedinUrl(data.linkedin_url);
+    setParsed(true);
+    setMode("form"); // Switch to form so user can review
   }
 
   async function handleFileUpload(file: File) {
@@ -85,24 +104,40 @@ export default function ResumeModal({
       if (!res.ok) throw new Error("解析失敗");
 
       const data: ResumeParseResult = await res.json();
-
-      // Auto-fill form fields
-      if (data.name) setName(data.name);
-      if (data.email) setEmail(data.email);
-      if (data.phone) setPhone(data.phone);
-      if (data.position) setPosition(data.position);
-      if (data.years) setYearsExp(String(data.years));
-      if (data.skills) setSkills(data.skills);
-      if (data.education) setEducation(data.education);
-      if (data.location) setLocation(data.location);
-      if (data.linkedin_url) setLinkedinUrl(data.linkedin_url);
-
-      setParsed(true);
-      setMode("form"); // Switch to form so user can review
+      applyParsedData(data);
     } catch {
       setError("履歷解析失敗，請改用手動填寫");
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function handleLinkParse() {
+    if (!linkUrl.trim()) return;
+    setLinkParsing(true);
+    setError("");
+
+    try {
+      const res = await fetch("/api/resume/parse-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: linkUrl.trim() }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "解析失敗");
+      }
+
+      const parsedData: ResumeParseResult = data.parsed || data;
+      applyParsedData(parsedData);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "連結解析失敗，請確認連結有效"
+      );
+    } finally {
+      setLinkParsing(false);
     }
   }
 
@@ -121,17 +156,17 @@ export default function ResumeModal({
         name,
         email,
         phone,
-        position: position || job?.position_name,
+        current_position: position || job?.position_name,
         years_experience: yearsExp ? parseInt(yearsExp) : undefined,
         skills,
         education,
         location,
         current_salary: currentSalary,
         expected_salary: expectedSalary,
-        biography,
+        notes: biography,
         linkedin_url: linkedinUrl,
         source: "顧問網站",
-        consultant: consultant.displayName,
+        recruiter: consultant.displayName,
         status: "AI推薦",
         target_job_id: job?.id,
         target_job_label: job ? `${job.position_name} @ ${job.industry ? `知名${job.industry}企業` : "知名企業"}` : undefined,
@@ -188,6 +223,11 @@ export default function ResumeModal({
     );
   }
 
+  const tabClass = (active: boolean) =>
+    `px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+      active ? "text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+    }`;
+
   return (
     <Modal
       isOpen={isOpen}
@@ -199,25 +239,24 @@ export default function ResumeModal({
       <div className="flex gap-2 mb-6">
         <button
           onClick={() => setMode("form")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-            mode === "form"
-              ? "text-white"
-              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }`}
+          className={tabClass(mode === "form")}
           style={mode === "form" ? { backgroundColor: accent } : {}}
         >
           手動填寫
         </button>
         <button
           onClick={() => setMode("upload")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-            mode === "upload"
-              ? "text-white"
-              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }`}
+          className={tabClass(mode === "upload")}
           style={mode === "upload" ? { backgroundColor: accent } : {}}
         >
           上傳履歷
+        </button>
+        <button
+          onClick={() => setMode("link")}
+          className={tabClass(mode === "link")}
+          style={mode === "link" ? { backgroundColor: accent } : {}}
+        >
+          貼上連結
         </button>
         {parsed && (
           <span className="flex items-center text-xs text-green-600 ml-2">
@@ -276,6 +315,37 @@ export default function ResumeModal({
               </div>
             )}
           </label>
+        </div>
+      )}
+
+      {/* Link section */}
+      {mode === "link" && (
+        <div className="mb-6 space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              履歷連結
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                placeholder="貼上履歷 PDF 連結..."
+                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <Button
+                onClick={handleLinkParse}
+                disabled={linkParsing || !linkUrl.trim()}
+                className="!text-white whitespace-nowrap"
+                style={{ backgroundColor: accent } as React.CSSProperties}
+              >
+                {linkParsing ? "解析中..." : "解析"}
+              </Button>
+            </div>
+          </div>
+          <p className="text-xs text-gray-400">
+            支援 Google Drive、Dropbox 分享連結或直接 PDF 網址
+          </p>
         </div>
       )}
 
