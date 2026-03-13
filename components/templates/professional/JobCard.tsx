@@ -6,21 +6,22 @@ import Badge from "@/components/ui/Badge";
 interface JobCardProps {
   job: Job;
   onApply: (job: Job) => void;
+  onViewDetail?: (job: Job) => void;
   accentColor?: string;
 }
 
-export default function ProfessionalJobCard({ job, onApply, accentColor = "#2563eb" }: JobCardProps) {
+export default function ProfessionalJobCard({ job, onApply, onViewDetail, accentColor = "#2563eb" }: JobCardProps) {
   const skills = job.key_skills ? job.key_skills.split(/[,;、]/).map((s) => s.trim()).filter(Boolean).slice(0, 6) : [];
 
   return (
-    <div className="bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-all p-6">
+    <div className="bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-all p-6 cursor-pointer" onClick={() => onViewDetail?.(job)}>
       <div className="flex flex-col gap-4">
         <div className="flex items-start justify-between">
           <div>
             <h3 className="text-lg font-bold text-gray-900 mb-1">{job.position_name}</h3>
             <p className="text-sm text-gray-500">{job.industry ? `知名${job.industry}企業` : "知名企業"}{job.department && ` · ${job.department}`}</p>
           </div>
-          <button onClick={() => onApply(job)} className="shrink-0 px-5 py-2 rounded-lg text-white text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer" style={{ backgroundColor: accentColor }}>
+          <button onClick={(e) => { e.stopPropagation(); onApply(job); }} className="shrink-0 px-5 py-2 rounded-lg text-white text-sm font-medium hover:opacity-90 transition-opacity cursor-pointer" style={{ backgroundColor: accentColor }}>
             立即應徵
           </button>
         </div>

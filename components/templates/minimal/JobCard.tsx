@@ -6,16 +6,17 @@ import Badge from "@/components/ui/Badge";
 interface JobCardProps {
   job: Job;
   onApply: (job: Job) => void;
+  onViewDetail?: (job: Job) => void;
   accentColor?: string;
 }
 
-export default function MinimalJobCard({ job, onApply, accentColor = "#3b82f6" }: JobCardProps) {
+export default function MinimalJobCard({ job, onApply, onViewDetail, accentColor = "#3b82f6" }: JobCardProps) {
   const skills = job.key_skills
     ? job.key_skills.split(/[,;、]/).map((s) => s.trim()).filter(Boolean).slice(0, 5)
     : [];
 
   return (
-    <div className="group border border-gray-100 rounded-xl p-6 hover:border-gray-200 hover:shadow-sm transition-all">
+    <div className="group border border-gray-100 rounded-xl p-6 hover:border-gray-200 hover:shadow-sm transition-all cursor-pointer" onClick={() => onViewDetail?.(job)}>
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="flex-1 min-w-0">
           <h3 className="text-lg font-semibold text-gray-900 mb-1 truncate">
@@ -64,7 +65,7 @@ export default function MinimalJobCard({ job, onApply, accentColor = "#3b82f6" }
 
         {/* Apply button */}
         <button
-          onClick={() => onApply(job)}
+          onClick={(e) => { e.stopPropagation(); onApply(job); }}
           className="shrink-0 px-4 py-2 rounded-lg text-white text-sm font-medium transition-opacity hover:opacity-90 cursor-pointer"
           style={{ backgroundColor: accentColor }}
         >

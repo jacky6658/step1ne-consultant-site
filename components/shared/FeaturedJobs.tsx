@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Consultant, Job } from "@/lib/types";
 import MinimalJobCard from "@/components/templates/minimal/JobCard";
 import ResumeModal from "@/components/shared/ResumeModal";
+import JobDetailModal from "@/components/shared/JobDetailModal";
 
 interface FeaturedJobsProps {
   consultant: Consultant;
@@ -12,11 +13,23 @@ interface FeaturedJobsProps {
 
 export default function FeaturedJobs({ consultant, jobs }: FeaturedJobsProps) {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [showModal, setShowModal] = useState(false);
+  const [showResumeModal, setShowResumeModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   function handleApply(job: Job) {
     setSelectedJob(job);
-    setShowModal(true);
+    setShowResumeModal(true);
+  }
+
+  function handleViewDetail(job: Job) {
+    setSelectedJob(job);
+    setShowDetailModal(true);
+  }
+
+  function handleApplyFromDetail(job: Job) {
+    setShowDetailModal(false);
+    setSelectedJob(job);
+    setShowResumeModal(true);
   }
 
   return (
@@ -27,15 +40,27 @@ export default function FeaturedJobs({ consultant, jobs }: FeaturedJobsProps) {
             key={job.id}
             job={job}
             onApply={handleApply}
+            onViewDetail={handleViewDetail}
             accentColor={consultant.siteConfig.accentColor}
           />
         ))}
       </div>
 
-      <ResumeModal
-        isOpen={showModal}
+      <JobDetailModal
+        isOpen={showDetailModal}
         onClose={() => {
-          setShowModal(false);
+          setShowDetailModal(false);
+          setSelectedJob(null);
+        }}
+        job={selectedJob}
+        consultant={consultant}
+        onApply={handleApplyFromDetail}
+      />
+
+      <ResumeModal
+        isOpen={showResumeModal}
+        onClose={() => {
+          setShowResumeModal(false);
           setSelectedJob(null);
         }}
         job={selectedJob}

@@ -7,16 +7,18 @@ interface JobCardProps {
   job: Job;
   accentColor: string;
   onApply?: (job: Job) => void;
+  onViewDetail?: (job: Job) => void;
 }
 
-export default function ElegantJobCard({ job, accentColor = "#b8860b", onApply }: JobCardProps) {
+export default function ElegantJobCard({ job, accentColor = "#b8860b", onApply, onViewDetail }: JobCardProps) {
   const skills = job.key_skills
     ? job.key_skills.split(/[,;、]/).map((s) => s.trim()).filter(Boolean).slice(0, 5)
     : [];
 
   return (
     <div
-      className="group p-6 md:p-8 transition-all duration-300 hover:shadow-md"
+      className="group p-6 md:p-8 transition-all duration-300 hover:shadow-md cursor-pointer"
+      onClick={() => onViewDetail?.(job)}
       style={{
         backgroundColor: "#fffdf9",
         border: "1px solid #e8e0d0",
@@ -93,7 +95,7 @@ export default function ElegantJobCard({ job, accentColor = "#b8860b", onApply }
 
         {/* Apply button */}
         <button
-          onClick={() => onApply?.(job)}
+          onClick={(e) => { e.stopPropagation(); onApply?.(job); }}
           className="shrink-0 px-5 py-2.5 font-serif text-sm tracking-wider text-white transition-all duration-300 hover:brightness-110 cursor-pointer"
           style={{
             backgroundColor: accentColor,

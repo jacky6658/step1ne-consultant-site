@@ -68,6 +68,7 @@ export interface Job {
   salary_range: string;
   key_skills: string;
   job_description?: string;
+  marketing_description?: string;
   job_status: string;
   industry: string;
   location: string;
@@ -181,7 +182,7 @@ export interface TemplatePageProps {
 export interface TemplateComponents {
   Header: React.ComponentType<{ consultant: Consultant; currentPage: string }>;
   Hero: React.ComponentType<{ consultant: Consultant }>;
-  JobCard: React.ComponentType<{ job: Job; onApply: (job: Job) => void }>;
+  JobCard: React.ComponentType<{ job: Job; onApply: (job: Job) => void; onViewDetail?: (job: Job) => void }>;
   AboutSection: React.ComponentType<{ consultant: Consultant }>;
   Footer: React.ComponentType<{ consultant: Consultant }>;
 }

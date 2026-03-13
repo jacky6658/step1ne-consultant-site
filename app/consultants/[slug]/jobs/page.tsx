@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MOCK_CONSULTANT, MOCK_JOBS } from "@/lib/mock-data";
+import { MOCK_CONSULTANT } from "@/lib/mock-data";
 import type { Consultant, Job } from "@/lib/types";
 import MinimalHeader from "@/components/templates/minimal/Header";
 import MinimalJobCard from "@/components/templates/minimal/JobCard";
 import MinimalFooter from "@/components/templates/minimal/Footer";
 import ResumeModal from "@/components/shared/ResumeModal";
+import JobDetailModal from "@/components/shared/JobDetailModal";
 
 export default function JobsPage() {
   const [consultant, setConsultant] = useState<Consultant>(MOCK_CONSULTANT);
@@ -14,7 +15,8 @@ export default function JobsPage() {
   const [filteredJobs, setFilteredJobs] = useState<Job[]>([]);
   const [search, setSearch] = useState("");
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [showModal, setShowModal] = useState(false);
+  const [showResumeModal, setShowResumeModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Fetch data on mount
@@ -59,7 +61,18 @@ export default function JobsPage() {
 
   function handleApply(job: Job) {
     setSelectedJob(job);
-    setShowModal(true);
+    setShowResumeModal(true);
+  }
+
+  function handleViewDetail(job: Job) {
+    setSelectedJob(job);
+    setShowDetailModal(true);
+  }
+
+  function handleApplyFromDetail(job: Job) {
+    setShowDetailModal(false);
+    setSelectedJob(job);
+    setShowResumeModal(true);
   }
 
   return (
@@ -94,6 +107,7 @@ export default function JobsPage() {
                   key={job.id}
                   job={job}
                   onApply={handleApply}
+                  onViewDetail={handleViewDetail}
                   accentColor={consultant.siteConfig.accentColor}
                 />
               ))
@@ -109,11 +123,23 @@ export default function JobsPage() {
 
       <MinimalFooter consultant={consultant} />
 
+      {/* Job detail modal */}
+      <JobDetailModal
+        isOpen={showDetailModal}
+        onClose={() => {
+          setShowDetailModal(false);
+          setSelectedJob(null);
+        }}
+        job={selectedJob}
+        consultant={consultant}
+        onApply={handleApplyFromDetail}
+      />
+
       {/* Resume submission modal */}
       <ResumeModal
-        isOpen={showModal}
+        isOpen={showResumeModal}
         onClose={() => {
-          setShowModal(false);
+          setShowResumeModal(false);
           setSelectedJob(null);
         }}
         job={selectedJob}
