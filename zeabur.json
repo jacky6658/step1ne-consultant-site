@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schema.zeabur.app/template.json",
+  "build_type": "next",
+  "output_dir": ".next",
+  "env": {
+    "HEADHUNTER_API_URL": {
+      "description": "Backend API URL for the headhunter system",
+      "required": true,
+      "default": "https://backendstep1ne.zeabur.app"
+    }
+  }
+}
